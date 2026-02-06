@@ -1,0 +1,369 @@
+{
+  "updatedAt": "2026-02-06T14:46:48.343Z",
+  "createdAt": "2026-02-05T14:30:17.381Z",
+  "id": "2KtkOaUAIx_IntJD-wHya",
+  "name": "agenda_engine",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "0aab0514-d82a-4371-91e8-f4f7420c0dd8",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "agenda_config",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "1"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "396aae67-bda8-4729-ab34-aafc6f6dc752",
+      "name": "Get a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "cuLPizV1tj78XzSn",
+          "name": "Supabase (Agente IA)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst items = $input.all();\nconst config = items[0].json;\n\nconst startHour = config.horario_inicio || \"08:00\";\nconst endHour = config.horario_fim || \"18:00\";\nconst interval = parseInt(config.intervalo) || 30;\nconst breakStart = config.pausa_inicio || \"12:00\";\nconst breakEnd = config.pausa_fim || \"13:30\";\n\nlet slots = [];\n\n// Generate for next 7 days\nfor (let i = 0; i < 7; i++) {\n    const d = new Date();\n    d.setDate(d.getDate() + i);\n    \n    // Skip weekends\n    const day = d.getDay();\n    if (day === 0 || day === 6) continue;\n\n    const dataStr = d.toISOString().split('T')[0];\n    \n    let current = new Date(`${dataStr}T${startHour}:00`);\n    const end = new Date(`${dataStr}T${endHour}:00`);\n\n    while (current < end) {\n        const timeStr = current.toTimeString().split(' ')[0].slice(0, 5);\n        \n        // Check break\n        const isBreak = timeStr >= breakStart && timeStr < breakEnd;\n        \n        if (!isBreak) {\n            const slotEnd = new Date(current.getTime() + interval * 60000);\n            slots.push({\n                json: {\n                    data: dataStr,\n                    hora_inicio: timeStr + \":00\",\n                    hora_fim: slotEnd.toTimeString().split(' ')[0].slice(0, 5) + \":00\",\n                    status: \"DISPONIVEL\"\n                }\n            });\n        }\n        current = new Date(current.getTime() + interval * 60000);\n    }\n}\n\nreturn slots;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "ba3bb439-e2d1-4bb1-9430-ad75108067b7",
+      "name": "Gerar Slots"
+    },
+    {
+      "parameters": {
+        "tableId": "agenda_slots",
+        "dataToSend": "autoMapInputData"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        624,
+        0
+      ],
+      "id": "cb4a33fc-289d-4ffd-ab11-7fcaa8c4c484",
+      "name": "Create a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "cuLPizV1tj78XzSn",
+          "name": "Supabase (Agente IA)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a row": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Gerar Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Create a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar Slots": {
+      "main": [
+        [
+          {
+            "node": "Create a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "6c6da53f-15f2-4600-bcf4-9ec190124a4b",
+  "activeVersionId": "6c6da53f-15f2-4600-bcf4-9ec190124a4b",
+  "versionCounter": 22,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-02-05T14:30:17.381Z",
+      "createdAt": "2026-02-05T14:30:17.381Z",
+      "role": "workflow:owner",
+      "workflowId": "2KtkOaUAIx_IntJD-wHya",
+      "projectId": "kP7h3oSEBMHOctB3",
+      "project": {
+        "updatedAt": "2025-12-03T19:22:57.668Z",
+        "createdAt": "2025-12-03T18:15:41.044Z",
+        "id": "kP7h3oSEBMHOctB3",
+        "name": "Camilo miloruas@gmail.com <miloruas@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "fa7cd7cf-7d9b-40b7-a8c7-aaac9636a19f",
+        "projectRelations": [
+          {
+            "updatedAt": "2025-12-03T18:15:41.044Z",
+            "createdAt": "2025-12-03T18:15:41.044Z",
+            "userId": "fa7cd7cf-7d9b-40b7-a8c7-aaac9636a19f",
+            "projectId": "kP7h3oSEBMHOctB3",
+            "user": {
+              "updatedAt": "2026-02-06T11:05:22.739Z",
+              "createdAt": "2025-12-03T18:15:30.723Z",
+              "id": "fa7cd7cf-7d9b-40b7-a8c7-aaac9636a19f",
+              "email": "miloruas@gmail.com",
+              "firstName": "Camilo",
+              "lastName": "miloruas@gmail.com",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2025-12-03T19:23:20.097Z",
+                "personalization_survey_n8n_version": "1.122.4",
+                "companyType": "personal",
+                "reportedSource": "youtube"
+              },
+              "settings": {
+                "userActivated": true,
+                "firstSuccessfulWorkflowId": "HqDaKODwZIg6Hdmx",
+                "userActivatedAt": 1764891421091,
+                "npsSurvey": {
+                  "responded": true,
+                  "lastShownAt": 1765455747678
+                },
+                "easyAIWorkflowOnboarded": true,
+                "dismissedCallouts": {
+                  "aiAgentStarterCallout": true
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2026-02-06",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-02-06T14:43:56.234Z",
+    "createdAt": "2026-02-06T14:43:15.710Z",
+    "versionId": "6c6da53f-15f2-4600-bcf4-9ec190124a4b",
+    "workflowId": "2KtkOaUAIx_IntJD-wHya",
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "triggerAtHour": 8
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.3,
+        "position": [
+          0,
+          0
+        ],
+        "id": "0aab0514-d82a-4371-91e8-f4f7420c0dd8",
+        "name": "Schedule Trigger"
+      },
+      {
+        "parameters": {
+          "operation": "get",
+          "tableId": "agenda_config",
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "id",
+                "keyValue": "1"
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.supabase",
+        "typeVersion": 1,
+        "position": [
+          208,
+          0
+        ],
+        "id": "396aae67-bda8-4729-ab34-aafc6f6dc752",
+        "name": "Get a row",
+        "credentials": {
+          "supabaseApi": {
+            "id": "cuLPizV1tj78XzSn",
+            "name": "Supabase (Agente IA)"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst items = $input.all();\nconst config = items[0].json;\n\nconst startHour = config.horario_inicio || \"08:00\";\nconst endHour = config.horario_fim || \"18:00\";\nconst interval = parseInt(config.intervalo) || 30;\nconst breakStart = config.pausa_inicio || \"12:00\";\nconst breakEnd = config.pausa_fim || \"13:30\";\n\nlet slots = [];\n\n// Generate for next 7 days\nfor (let i = 0; i < 7; i++) {\n    const d = new Date();\n    d.setDate(d.getDate() + i);\n    \n    // Skip weekends\n    const day = d.getDay();\n    if (day === 0 || day === 6) continue;\n\n    const dataStr = d.toISOString().split('T')[0];\n    \n    let current = new Date(`${dataStr}T${startHour}:00`);\n    const end = new Date(`${dataStr}T${endHour}:00`);\n\n    while (current < end) {\n        const timeStr = current.toTimeString().split(' ')[0].slice(0, 5);\n        \n        // Check break\n        const isBreak = timeStr >= breakStart && timeStr < breakEnd;\n        \n        if (!isBreak) {\n            const slotEnd = new Date(current.getTime() + interval * 60000);\n            slots.push({\n                json: {\n                    data: dataStr,\n                    hora_inicio: timeStr + \":00\",\n                    hora_fim: slotEnd.toTimeString().split(' ')[0].slice(0, 5) + \":00\",\n                    status: \"DISPONIVEL\"\n                }\n            });\n        }\n        current = new Date(current.getTime() + interval * 60000);\n    }\n}\n\nreturn slots;\n"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          416,
+          0
+        ],
+        "id": "ba3bb439-e2d1-4bb1-9430-ad75108067b7",
+        "name": "Gerar Slots"
+      },
+      {
+        "parameters": {
+          "tableId": "agenda_slots",
+          "dataToSend": "autoMapInputData"
+        },
+        "type": "n8n-nodes-base.supabase",
+        "typeVersion": 1,
+        "position": [
+          624,
+          0
+        ],
+        "id": "cb4a33fc-289d-4ffd-ab11-7fcaa8c4c484",
+        "name": "Create a row",
+        "credentials": {
+          "supabaseApi": {
+            "id": "cuLPizV1tj78XzSn",
+            "name": "Supabase (Agente IA)"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Get a row",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get a row": {
+        "main": [
+          [
+            {
+              "node": "Code in JavaScript",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Gerar Slots",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code in JavaScript": {
+        "main": [
+          [
+            {
+              "node": "Create a row",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Gerar Slots": {
+        "main": [
+          [
+            {
+              "node": "Create a row",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Camilo miloruas@gmail.com",
+    "name": "Version 6c6da53f",
+    "description": "",
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-02-06T14:43:56.223Z",
+        "id": 133,
+        "workflowId": "2KtkOaUAIx_IntJD-wHya",
+        "versionId": "6c6da53f-15f2-4600-bcf4-9ec190124a4b",
+        "event": "activated",
+        "userId": "fa7cd7cf-7d9b-40b7-a8c7-aaac9636a19f"
+      }
+    ]
+  }
+}
