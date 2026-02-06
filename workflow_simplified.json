@@ -1,0 +1,238 @@
+{
+    "name": "Agente de Agendamento Profissional - Portfolio",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "webhook-agendamento",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                0,
+                0
+            ],
+            "id": "webhook-1",
+            "name": "Webhook"
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "1",
+                            "name": "telefone",
+                            "value": "={{ $json.body.from }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "2",
+                            "name": "nome",
+                            "value": "={{ $json.body.pushName }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "3",
+                            "name": "mensagem",
+                            "value": "={{ $json.body.text.message }}",
+                            "type": "string"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                220,
+                0
+            ],
+            "id": "set-1",
+            "name": "Preparar Dados"
+        },
+        {
+            "parameters": {
+                "promptType": "define",
+                "text": "={{ $json.mensagem }}",
+                "options": {
+                    "systemMessage": "=Você é Lucas, um assistente de agendamento profissional e eficiente.\n\nData de hoje: {{ $now.format('dddd, DD/MM/YYYY HH:mm') }}\n\nSua função é ajudar o cliente a consultar horários e agendar. \n\nREGRAS:\n1. Se o cliente perguntar por disponibilidade, use a ferramenta 'consultar_horarios'.\n2. Sempre peça a data se o cliente não informar.\n3. Seja cordial e objetivo.\n4. Responda em Português do Brasil.\n"
+                }
+            },
+            "type": "@n8n/n8n-nodes-langchain.agent",
+            "typeVersion": 2.2,
+            "position": [
+                440,
+                0
+            ],
+            "id": "agent-1",
+            "name": "AI Agent"
+        },
+        {
+            "parameters": {
+                "model": {
+                    "__rl": true,
+                    "value": "gpt-4o-mini",
+                    "mode": "list",
+                    "cachedResultName": "gpt-4o-mini"
+                }
+            },
+            "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+            "typeVersion": 1.2,
+            "position": [
+                340,
+                200
+            ],
+            "id": "model-1",
+            "name": "OpenAI Model",
+            "credentials": {
+                "openAiApi": {
+                    "id": "oPqSWZ8UON9AXTOz",
+                    "name": "OpenAi account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "sessionIdType": "customKey",
+                "sessionKey": "={{ $node[\"Preparar Dados\"].json.telefone }}"
+            },
+            "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+            "typeVersion": 1.3,
+            "position": [
+                540,
+                200
+            ],
+            "id": "memory-1",
+            "name": "Memória Postgres",
+            "credentials": {
+                "postgres": {
+                    "id": "v3RabrtvpCXYgmbG",
+                    "name": "Postgres account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "workflowId": {
+                    "__rl": true,
+                    "value": "20Rq4ar-aW-W3s3CvO_px",
+                    "mode": "list",
+                    "cachedResultUrl": "/workflow/20Rq4ar-aW-W3s3CvO_px",
+                    "cachedResultName": "agenda_consultar_disponibilidade"
+                },
+                "workflowInputs": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "data": "={{ $json.data }}"
+                    },
+                    "schema": [
+                        {
+                            "id": "data",
+                            "displayName": "Data",
+                            "required": true,
+                            "type": "string",
+                            "description": "Data para verificar disponibilidade (YYYY-MM-DD)"
+                        }
+                    ]
+                }
+            },
+            "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+            "typeVersion": 2.2,
+            "position": [
+                700,
+                200
+            ],
+            "id": "tool-1",
+            "name": "consultar_horarios"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://n8n.camiloruas.dev/webhook/enviar-mensagem",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"to\": \"{{ $node[\\\"Preparar Dados\\\"].json.telefone }}\",\n  \"text\": \"{{ $json.output }}\"\n}"
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                900,
+                0
+            ],
+            "id": "http-1",
+            "name": "Enviar Resposta"
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Preparar Dados",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Preparar Dados": {
+            "main": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "AI Agent": {
+            "main": [
+                [
+                    {
+                        "node": "Enviar Resposta",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "OpenAI Model": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Memória Postgres": {
+            "ai_memory": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_memory",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "consultar_horarios": {
+            "ai_tool": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_tool",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1",
+        "timezone": "America/Sao_Paulo"
+    }
+}

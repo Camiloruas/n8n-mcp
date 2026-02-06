@@ -1,0 +1,238 @@
+{
+  "updatedAt": "2026-02-05T23:15:31.006Z",
+  "createdAt": "2026-02-05T17:27:34.945Z",
+  "id": "20Rq4ar-aW-W3s3CvO_px",
+  "name": "agenda_consultar_disponibilidade",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bef9f4c9-01d9-4079-a20d-c50e572c3986",
+              "name": "data",
+              "value": "2026-02-05",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "d2a31570-b9a6-41b8-87d9-3c8fc6e8d903",
+      "name": "Receber data consulta"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "agenda_slots",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "data",
+              "condition": "eq",
+              "keyValue": "={{ $json.data }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "acf23a54-86b4-4c16-bb56-3d593e767940",
+      "name": "Buscar horários disponíveis",
+      "credentials": {
+        "supabaseApi": {
+          "id": "cuLPizV1tj78XzSn",
+          "name": "Supabase (Agente IA)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "78513cb6-6307-4c53-b404-56b593e1934d",
+              "name": "data_formatada",
+              "value": "={{$json.data.split('-').reverse().join('-')}}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        624,
+        0
+      ],
+      "id": "c51b4e74-1ca2-455b-ace1-610c6bd0611f",
+      "name": "Formatar Data"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nif (!items.length) {\n  return [{ mensagem: \"Nenhum horário disponível.\" }];\n}\n\nconst data = items[0].json.data;\nconst horarios = items.map(i => i.json.hora_inicio.slice(0,5));\n\nconst msg =\n`📅 ${data}\n\nHorários disponíveis:\n${horarios.join(\"\\n\")}`;\n\nreturn [{ mensagem: msg }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        0
+      ],
+      "id": "b5f179c4-2687-4154-a0cb-44f7dfdb7e1d",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "71b44787-4447-4467-84b7-474aa645ce30",
+      "name": "When Executed by Another Workflow"
+    }
+  ],
+  "connections": {
+    "Receber data consulta": {
+      "main": [
+        [
+          {
+            "node": "Buscar horários disponíveis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar horários disponíveis": {
+      "main": [
+        [
+          {
+            "node": "Formatar Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Data": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        []
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Receber data consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "b7bed8c3-2618-4ac4-b9d1-18c12058d2fa",
+  "activeVersionId": null,
+  "versionCounter": 19,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-02-05T17:27:34.945Z",
+      "createdAt": "2026-02-05T17:27:34.945Z",
+      "role": "workflow:owner",
+      "workflowId": "20Rq4ar-aW-W3s3CvO_px",
+      "projectId": "kP7h3oSEBMHOctB3",
+      "project": {
+        "updatedAt": "2025-12-03T19:22:57.668Z",
+        "createdAt": "2025-12-03T18:15:41.044Z",
+        "id": "kP7h3oSEBMHOctB3",
+        "name": "Camilo miloruas@gmail.com <miloruas@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "fa7cd7cf-7d9b-40b7-a8c7-aaac9636a19f",
+        "projectRelations": [
+          {
+            "updatedAt": "2025-12-03T18:15:41.044Z",
+            "createdAt": "2025-12-03T18:15:41.044Z",
+            "userId": "fa7cd7cf-7d9b-40b7-a8c7-aaac9636a19f",
+            "projectId": "kP7h3oSEBMHOctB3",
+            "user": {
+              "updatedAt": "2026-02-06T11:05:22.739Z",
+              "createdAt": "2025-12-03T18:15:30.723Z",
+              "id": "fa7cd7cf-7d9b-40b7-a8c7-aaac9636a19f",
+              "email": "miloruas@gmail.com",
+              "firstName": "Camilo",
+              "lastName": "miloruas@gmail.com",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2025-12-03T19:23:20.097Z",
+                "personalization_survey_n8n_version": "1.122.4",
+                "companyType": "personal",
+                "reportedSource": "youtube"
+              },
+              "settings": {
+                "userActivated": true,
+                "firstSuccessfulWorkflowId": "HqDaKODwZIg6Hdmx",
+                "userActivatedAt": 1764891421091,
+                "npsSurvey": {
+                  "responded": true,
+                  "lastShownAt": 1765455747678
+                },
+                "easyAIWorkflowOnboarded": true,
+                "dismissedCallouts": {
+                  "aiAgentStarterCallout": true
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2026-02-06",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": null
+}

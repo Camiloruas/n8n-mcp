@@ -1,0 +1,200 @@
+{
+  "updatedAt": "2026-02-06T12:33:44.939Z",
+  "createdAt": "2026-02-05T14:30:17.381Z",
+  "id": "2KtkOaUAIx_IntJD-wHya",
+  "name": "agenda_engine",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "0aab0514-d82a-4371-91e8-f4f7420c0dd8",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "agenda_config",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "1"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "396aae67-bda8-4729-ab34-aafc6f6dc752",
+      "name": "Get a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "cuLPizV1tj78XzSn",
+          "name": "Supabase (Agente IA)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const config = items[0].json;\n\nfunction toMinutes(t){\n  const [h,m] = t.split(':').map(Number);\n  return h*60+m;\n}\n\nfunction toTime(m){\n  const h = Math.floor(m/60);\n  const mm = m%60;\n  return `${h.toString().padStart(2,'0')}:${mm.toString().padStart(2,'0')}`;\n}\n\nconst intervalo = config.intervalo_minutos;\nconst inicio = toMinutes(config.horario_inicio);\nconst fim = toMinutes(config.horario_fim);\nconst pausaIni = toMinutes(config.pausa_inicio);\nconst pausaFim = toMinutes(config.pausa_fim);\n\nconst hoje = new Date();\nconst data = hoje.toISOString().split('T')[0];\n\nlet slots = [];\n\nfor(let t=inicio; t+intervalo<=fim; t+=intervalo){\n\n  if(t>=pausaIni && t<pausaFim) continue;\n\n  slots.push({\n    json:{\n      data,\n      hora_inicio: toTime(t),\n      hora_fim: toTime(t+intervalo),\n      status: \"DISPONIVEL\"\n    }\n  });\n}\n\nreturn slots;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "ba3bb439-e2d1-4bb1-9430-ad75108067b7",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "tableId": "agenda_slots",
+        "dataToSend": "autoMapInputData"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        624,
+        0
+      ],
+      "id": "cb4a33fc-289d-4ffd-ab11-7fcaa8c4c484",
+      "name": "Create a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "cuLPizV1tj78XzSn",
+          "name": "Supabase (Agente IA)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a row": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Create a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "78bc4fba-a77c-4be2-b1d0-85b45d704660",
+  "activeVersionId": null,
+  "versionCounter": 7,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-02-05T14:30:17.381Z",
+      "createdAt": "2026-02-05T14:30:17.381Z",
+      "role": "workflow:owner",
+      "workflowId": "2KtkOaUAIx_IntJD-wHya",
+      "projectId": "kP7h3oSEBMHOctB3",
+      "project": {
+        "updatedAt": "2025-12-03T19:22:57.668Z",
+        "createdAt": "2025-12-03T18:15:41.044Z",
+        "id": "kP7h3oSEBMHOctB3",
+        "name": "Camilo miloruas@gmail.com <miloruas@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "fa7cd7cf-7d9b-40b7-a8c7-aaac9636a19f",
+        "projectRelations": [
+          {
+            "updatedAt": "2025-12-03T18:15:41.044Z",
+            "createdAt": "2025-12-03T18:15:41.044Z",
+            "userId": "fa7cd7cf-7d9b-40b7-a8c7-aaac9636a19f",
+            "projectId": "kP7h3oSEBMHOctB3",
+            "user": {
+              "updatedAt": "2026-02-06T11:05:22.739Z",
+              "createdAt": "2025-12-03T18:15:30.723Z",
+              "id": "fa7cd7cf-7d9b-40b7-a8c7-aaac9636a19f",
+              "email": "miloruas@gmail.com",
+              "firstName": "Camilo",
+              "lastName": "miloruas@gmail.com",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2025-12-03T19:23:20.097Z",
+                "personalization_survey_n8n_version": "1.122.4",
+                "companyType": "personal",
+                "reportedSource": "youtube"
+              },
+              "settings": {
+                "userActivated": true,
+                "firstSuccessfulWorkflowId": "HqDaKODwZIg6Hdmx",
+                "userActivatedAt": 1764891421091,
+                "npsSurvey": {
+                  "responded": true,
+                  "lastShownAt": 1765455747678
+                },
+                "easyAIWorkflowOnboarded": true,
+                "dismissedCallouts": {
+                  "aiAgentStarterCallout": true
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2026-02-06",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": null
+}

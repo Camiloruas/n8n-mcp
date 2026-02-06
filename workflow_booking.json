@@ -1,0 +1,307 @@
+{
+    "name": "agenda_agendar_reserva",
+    "nodes": [
+        {
+            "parameters": {
+                "inputSource": "passthrough"
+            },
+            "type": "n8n-nodes-base.executeWorkflowTrigger",
+            "typeVersion": 1.1,
+            "position": [
+                0,
+                0
+            ],
+            "id": "trigger-1",
+            "name": "When Executed by Another Workflow"
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "1",
+                            "name": "telefone",
+                            "value": "={{ $json.telefone }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "2",
+                            "name": "slot_id",
+                            "value": "={{ $json.slot_id }}",
+                            "type": "string"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                220,
+                0
+            ],
+            "id": "set-1",
+            "name": "Receber Dados"
+        },
+        {
+            "parameters": {
+                "operation": "get",
+                "tableId": "agenda_slots",
+                "filters": {
+                    "conditions": [
+                        {
+                            "keyName": "id",
+                            "condition": "eq",
+                            "keyValue": "={{ $json.slot_id }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                440,
+                0
+            ],
+            "id": "supabase-1",
+            "name": "Verificar Slot",
+            "credentials": {
+                "supabaseApi": {
+                    "id": "cuLPizV1tj78XzSn",
+                    "name": "Supabase (Agente IA)"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "type": "string"
+                    },
+                    "conditions": [
+                        {
+                            "id": "cond-1",
+                            "leftValue": "={{ $json.status }}",
+                            "rightValue": "DISPONIVEL",
+                            "operator": {
+                                "type": "string",
+                                "operation": "equals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.2,
+            "position": [
+                660,
+                0
+            ],
+            "id": "if-1",
+            "name": "Disponível?"
+        },
+        {
+            "parameters": {
+                "operation": "update",
+                "tableId": "agenda_slots",
+                "filters": {
+                    "conditions": [
+                        {
+                            "keyName": "id",
+                            "condition": "eq",
+                            "keyValue": "={{ $json.id }}"
+                        }
+                    ]
+                },
+                "fieldsUi": {
+                    "fieldValues": [
+                        {
+                            "fieldId": "status",
+                            "fieldValue": "RESERVADO"
+                        },
+                        {
+                            "fieldId": "cliente_telefone",
+                            "fieldValue": "={{ $node[\"Receber Dados\"].json.telefone }}"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                880,
+                -100
+            ],
+            "id": "supabase-2",
+            "name": "Reservar Slot",
+            "credentials": {
+                "supabaseApi": {
+                    "id": "cuLPizV1tj78XzSn",
+                    "name": "Supabase (Agente IA)"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "tableId": "agenda_reservas",
+                "dataToSend": "defineBelow",
+                "fieldsUi": {
+                    "fieldValues": [
+                        {
+                            "fieldId": "slot_id",
+                            "fieldValue": "={{ $node[\"Verificar Slot\"].json.id }}"
+                        },
+                        {
+                            "fieldId": "cliente_telefone",
+                            "fieldValue": "={{ $node[\"Receber Dados\"].json.telefone }}"
+                        },
+                        {
+                            "fieldId": "status",
+                            "fieldValue": "RESERVADO"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                1100,
+                -100
+            ],
+            "id": "supabase-3",
+            "name": "Criar Reserva",
+            "credentials": {
+                "supabaseApi": {
+                    "id": "cuLPizV1tj78XzSn",
+                    "name": "Supabase (Agente IA)"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "msg-ok",
+                            "name": "mensagem",
+                            "value": "Reserva realizada com sucesso para o horário {{ $node[\"Verificar Slot\"].json.hora_inicio }}.",
+                            "type": "string"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                1320,
+                -100
+            ],
+            "id": "set-2",
+            "name": "Resposta Sucesso"
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "msg-fail",
+                            "name": "mensagem",
+                            "value": "Desculpe, este horário não está mais disponível.",
+                            "type": "string"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                880,
+                100
+            ],
+            "id": "set-3",
+            "name": "Resposta Falha"
+        }
+    ],
+    "connections": {
+        "When Executed by Another Workflow": {
+            "main": [
+                [
+                    {
+                        "node": "Receber Dados",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Receber Dados": {
+            "main": [
+                [
+                    {
+                        "node": "Verificar Slot",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Verificar Slot": {
+            "main": [
+                [
+                    {
+                        "node": "Disponível?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Disponível?": {
+            "main": [
+                [
+                    {
+                        "node": "Reservar Slot",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Resposta Falha",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Reservar Slot": {
+            "main": [
+                [
+                    {
+                        "node": "Criar Reserva",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Criar Reserva": {
+            "main": [
+                [
+                    {
+                        "node": "Resposta Sucesso",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    }
+}
