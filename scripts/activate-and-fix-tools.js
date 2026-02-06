@@ -40,13 +40,17 @@ async function activateAndFixTools() {
             {
                 name: "agendar_reserva",
                 id: "8C195OrvhCXh3biQ",
-                desc: "Realiza o agendamento usando o slot_id retornado na consulta.",
+                desc: "Agenda um horário. Passe o 'Identificador_Tecnico' no campo slot_id, OU o horário (ex: 08:00) no campo 'horario' e a data no campo 'data'.",
                 schema: [
-                    { id: "slot_id", displayName: "ID do Slot", required: true, type: "string" },
+                    { id: "slot_id", displayName: "ID do Slot (UUID)", required: false, type: "string" },
+                    { id: "horario", displayName: "Horário (HH:mm)", required: false, type: "string" },
+                    { id: "data", displayName: "Data (YYYY-MM-DD)", required: false, type: "string" },
                     { id: "telefone", displayName: "Telefone", required: true, type: "string" }
                 ],
                 mapping: {
                     slot_id: "={{ $json.slot_id }}",
+                    horario: "={{ $json.horario }}",
+                    data: "={{ $json.data }}",
                     telefone: "={{ $('Preparar Dados').item.json.telefone }}"
                 }
             },

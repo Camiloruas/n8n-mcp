@@ -1,0 +1,957 @@
+{
+  "updatedAt": "2026-02-06T17:46:28.189Z",
+  "createdAt": "2026-02-06T11:35:02.272Z",
+  "id": "8C195OrvhCXh3biQ",
+  "name": "agenda_agendar_reserva",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "name": "trigger",
+      "id": "398450c1-7fb5-40b1-beef-68eb3177c964"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst input = $input.first().json;\nconst slot_id = input.slot_id;\nconst data = input.data || new Date().toISOString().split('T')[0];\nconst incomingHorario = input.horario;\n\n// Check if slot_id is actually a UUID\nconst isUuid = slot_id && slot_id.length > 20 && slot_id.includes('-');\n\n// If slot_id is not a UUID but has content, it might be the time\nconst fallbackHorario = (!isUuid && slot_id && slot_id.includes(':')) ? slot_id : null;\n\nconst finalHorario = incomingHorario || fallbackHorario;\n\nreturn {\n    isUuid,\n    slot_id: isUuid ? slot_id : null,\n    horario: finalHorario,\n    data: data,\n    telefone: input.telefone\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        0
+      ],
+      "name": "Resolver Dados",
+      "id": "97a22681-70d2-4690-98fe-c1499b704c3c"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "type": "string"
+          },
+          "conditions": [
+            {
+              "id": "uuid-cond",
+              "leftValue": "={{ $json.isUuid }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        0
+      ],
+      "name": "É UUID?",
+      "id": "43226e18-189b-493f-af42-ebb7e6a80222"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "agenda_slots",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.slot_id }}"
+            },
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "DISPONIVEL"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        600,
+        -100
+      ],
+      "name": "Buscar por ID",
+      "credentials": {
+        "supabaseApi": {
+          "id": "cuLPizV1tj78XzSn",
+          "name": "Supabase (Agente IA)"
+        }
+      },
+      "id": "6cba99d1-0997-4e3f-813b-be6c16d517e4"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "agenda_slots",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "data",
+              "condition": "eq",
+              "keyValue": "={{ $json.data }}"
+            },
+            {
+              "keyName": "hora_inicio",
+              "condition": "eq",
+              "keyValue": "={{ $json.horario ? ($json.horario.split(':').length === 2 ? $json.horario + ':00' : $json.horario) : '00:00:00' }}"
+            },
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "DISPONIVEL"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        600,
+        100
+      ],
+      "name": "Buscar por Tempo",
+      "credentials": {
+        "supabaseApi": {
+          "id": "cuLPizV1tj78XzSn",
+          "name": "Supabase (Agente IA)"
+        }
+      },
+      "id": "9bd90887-7fdd-485e-848e-11014e3c8001"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst slots = $input.all();\nif (!slots.length) {\n    return { error: true, mensagem: \"Horário não encontrado ou já reservado.\" };\n}\nreturn slots[0].json;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        850,
+        0
+      ],
+      "name": "Validar Slot",
+      "id": "a20cc48b-9455-4afc-8f2b-d3f815ea6d88"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "type": "string"
+          },
+          "conditions": [
+            {
+              "id": "error-cond",
+              "leftValue": "={{ $json.error }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "notTrue"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1050,
+        0
+      ],
+      "name": "Tudo Certo?",
+      "id": "339d0263-a2ad-4858-9551-c259b2a616a6"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "agenda_slots",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "RESERVADO"
+            },
+            {
+              "fieldId": "cliente_telefone",
+              "fieldValue": "={{ $('Resolver Dados').item.json.telefone }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1250,
+        -100
+      ],
+      "name": "Reservar no Banco",
+      "credentials": {
+        "supabaseApi": {
+          "id": "cuLPizV1tj78XzSn",
+          "name": "Supabase (Agente IA)"
+        }
+      },
+      "id": "83a5050a-e0ff-41ce-95e1-9687fbd54a10"
+    },
+    {
+      "parameters": {
+        "tableId": "agenda_reservas",
+        "dataToSend": "defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "slot_id",
+              "fieldValue": "={{ $node[\"Validar Slot\"].json.id }}"
+            },
+            {
+              "fieldId": "cliente_telefone",
+              "fieldValue": "={{ $('Resolver Dados').item.json.telefone }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "RESERVADO"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1450,
+        -100
+      ],
+      "name": "Registrar Reserva",
+      "credentials": {
+        "supabaseApi": {
+          "id": "cuLPizV1tj78XzSn",
+          "name": "Supabase (Agente IA)"
+        }
+      },
+      "id": "c12b395a-dda3-4ad1-9b31-1da8e9845504"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "mensagem",
+              "value": "Perfeito! Seu agendamento foi realizado com sucesso.",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1650,
+        -100
+      ],
+      "name": "Fim Sucesso",
+      "id": "58a6e5d0-a0e3-4f01-8e87-119a1c623051"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a2",
+              "name": "mensagem",
+              "value": "={{ $json.mensagem }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1250,
+        100
+      ],
+      "name": "Fim Erro",
+      "id": "b81051bc-7597-4815-b01b-8a98a6bf3cb4"
+    }
+  ],
+  "connections": {
+    "trigger": {
+      "main": [
+        [
+          {
+            "node": "Resolver Dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolver Dados": {
+      "main": [
+        [
+          {
+            "node": "É UUID?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "É UUID?": {
+      "main": [
+        [
+          {
+            "node": "Buscar por ID",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buscar por Tempo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar por ID": {
+      "main": [
+        [
+          {
+            "node": "Validar Slot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar por Tempo": {
+      "main": [
+        [
+          {
+            "node": "Validar Slot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Slot": {
+      "main": [
+        [
+          {
+            "node": "Tudo Certo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tudo Certo?": {
+      "main": [
+        [
+          {
+            "node": "Reservar no Banco",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fim Erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reservar no Banco": {
+      "main": [
+        [
+          {
+            "node": "Registrar Reserva",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Reserva": {
+      "main": [
+        [
+          {
+            "node": "Fim Sucesso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "62975576-94c4-48ce-8be9-77a42752b07f",
+  "activeVersionId": "62975576-94c4-48ce-8be9-77a42752b07f",
+  "versionCounter": 51,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-02-06T11:35:02.272Z",
+      "createdAt": "2026-02-06T11:35:02.272Z",
+      "role": "workflow:owner",
+      "workflowId": "8C195OrvhCXh3biQ",
+      "projectId": "kP7h3oSEBMHOctB3",
+      "project": {
+        "updatedAt": "2025-12-03T19:22:57.668Z",
+        "createdAt": "2025-12-03T18:15:41.044Z",
+        "id": "kP7h3oSEBMHOctB3",
+        "name": "Camilo miloruas@gmail.com <miloruas@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "fa7cd7cf-7d9b-40b7-a8c7-aaac9636a19f",
+        "projectRelations": [
+          {
+            "updatedAt": "2025-12-03T18:15:41.044Z",
+            "createdAt": "2025-12-03T18:15:41.044Z",
+            "userId": "fa7cd7cf-7d9b-40b7-a8c7-aaac9636a19f",
+            "projectId": "kP7h3oSEBMHOctB3",
+            "user": {
+              "updatedAt": "2026-02-06T11:05:22.739Z",
+              "createdAt": "2025-12-03T18:15:30.723Z",
+              "id": "fa7cd7cf-7d9b-40b7-a8c7-aaac9636a19f",
+              "email": "miloruas@gmail.com",
+              "firstName": "Camilo",
+              "lastName": "miloruas@gmail.com",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2025-12-03T19:23:20.097Z",
+                "personalization_survey_n8n_version": "1.122.4",
+                "companyType": "personal",
+                "reportedSource": "youtube"
+              },
+              "settings": {
+                "userActivated": true,
+                "firstSuccessfulWorkflowId": "HqDaKODwZIg6Hdmx",
+                "userActivatedAt": 1764891421091,
+                "npsSurvey": {
+                  "responded": true,
+                  "lastShownAt": 1765455747678
+                },
+                "easyAIWorkflowOnboarded": true,
+                "dismissedCallouts": {
+                  "aiAgentStarterCallout": true
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2026-02-06",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-02-06T17:46:28.190Z",
+    "createdAt": "2026-02-06T17:46:28.190Z",
+    "versionId": "62975576-94c4-48ce-8be9-77a42752b07f",
+    "workflowId": "8C195OrvhCXh3biQ",
+    "nodes": [
+      {
+        "parameters": {
+          "inputSource": "passthrough"
+        },
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1.1,
+        "position": [
+          0,
+          0
+        ],
+        "name": "trigger",
+        "id": "398450c1-7fb5-40b1-beef-68eb3177c964"
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst input = $input.first().json;\nconst slot_id = input.slot_id;\nconst data = input.data || new Date().toISOString().split('T')[0];\nconst incomingHorario = input.horario;\n\n// Check if slot_id is actually a UUID\nconst isUuid = slot_id && slot_id.length > 20 && slot_id.includes('-');\n\n// If slot_id is not a UUID but has content, it might be the time\nconst fallbackHorario = (!isUuid && slot_id && slot_id.includes(':')) ? slot_id : null;\n\nconst finalHorario = incomingHorario || fallbackHorario;\n\nreturn {\n    isUuid,\n    slot_id: isUuid ? slot_id : null,\n    horario: finalHorario,\n    data: data,\n    telefone: input.telefone\n};\n"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          200,
+          0
+        ],
+        "name": "Resolver Dados",
+        "id": "97a22681-70d2-4690-98fe-c1499b704c3c"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "type": "string"
+            },
+            "conditions": [
+              {
+                "id": "uuid-cond",
+                "leftValue": "={{ $json.isUuid }}",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true"
+                }
+              }
+            ],
+            "combinator": "and"
+          }
+        },
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          400,
+          0
+        ],
+        "name": "É UUID?",
+        "id": "43226e18-189b-493f-af42-ebb7e6a80222"
+      },
+      {
+        "parameters": {
+          "operation": "getAll",
+          "tableId": "agenda_slots",
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "id",
+                "condition": "eq",
+                "keyValue": "={{ $json.slot_id }}"
+              },
+              {
+                "keyName": "status",
+                "condition": "eq",
+                "keyValue": "DISPONIVEL"
+              }
+            ]
+          },
+          "limit": 1
+        },
+        "type": "n8n-nodes-base.supabase",
+        "typeVersion": 1,
+        "position": [
+          600,
+          -100
+        ],
+        "name": "Buscar por ID",
+        "credentials": {
+          "supabaseApi": {
+            "id": "cuLPizV1tj78XzSn",
+            "name": "Supabase (Agente IA)"
+          }
+        },
+        "id": "6cba99d1-0997-4e3f-813b-be6c16d517e4"
+      },
+      {
+        "parameters": {
+          "operation": "getAll",
+          "tableId": "agenda_slots",
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "data",
+                "condition": "eq",
+                "keyValue": "={{ $json.data }}"
+              },
+              {
+                "keyName": "hora_inicio",
+                "condition": "eq",
+                "keyValue": "={{ $json.horario ? ($json.horario.split(':').length === 2 ? $json.horario + ':00' : $json.horario) : '00:00:00' }}"
+              },
+              {
+                "keyName": "status",
+                "condition": "eq",
+                "keyValue": "DISPONIVEL"
+              }
+            ]
+          },
+          "limit": 1
+        },
+        "type": "n8n-nodes-base.supabase",
+        "typeVersion": 1,
+        "position": [
+          600,
+          100
+        ],
+        "name": "Buscar por Tempo",
+        "credentials": {
+          "supabaseApi": {
+            "id": "cuLPizV1tj78XzSn",
+            "name": "Supabase (Agente IA)"
+          }
+        },
+        "id": "9bd90887-7fdd-485e-848e-11014e3c8001"
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst slots = $input.all();\nif (!slots.length) {\n    return { error: true, mensagem: \"Horário não encontrado ou já reservado.\" };\n}\nreturn slots[0].json;\n"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          850,
+          0
+        ],
+        "name": "Validar Slot",
+        "id": "a20cc48b-9455-4afc-8f2b-d3f815ea6d88"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "type": "string"
+            },
+            "conditions": [
+              {
+                "id": "error-cond",
+                "leftValue": "={{ $json.error }}",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "notTrue"
+                }
+              }
+            ],
+            "combinator": "and"
+          }
+        },
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          1050,
+          0
+        ],
+        "name": "Tudo Certo?",
+        "id": "339d0263-a2ad-4858-9551-c259b2a616a6"
+      },
+      {
+        "parameters": {
+          "operation": "update",
+          "tableId": "agenda_slots",
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "id",
+                "condition": "eq",
+                "keyValue": "={{ $json.id }}"
+              }
+            ]
+          },
+          "fieldsUi": {
+            "fieldValues": [
+              {
+                "fieldId": "status",
+                "fieldValue": "RESERVADO"
+              },
+              {
+                "fieldId": "cliente_telefone",
+                "fieldValue": "={{ $('Resolver Dados').item.json.telefone }}"
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.supabase",
+        "typeVersion": 1,
+        "position": [
+          1250,
+          -100
+        ],
+        "name": "Reservar no Banco",
+        "credentials": {
+          "supabaseApi": {
+            "id": "cuLPizV1tj78XzSn",
+            "name": "Supabase (Agente IA)"
+          }
+        },
+        "id": "83a5050a-e0ff-41ce-95e1-9687fbd54a10"
+      },
+      {
+        "parameters": {
+          "tableId": "agenda_reservas",
+          "dataToSend": "defineBelow",
+          "fieldsUi": {
+            "fieldValues": [
+              {
+                "fieldId": "slot_id",
+                "fieldValue": "={{ $node[\"Validar Slot\"].json.id }}"
+              },
+              {
+                "fieldId": "cliente_telefone",
+                "fieldValue": "={{ $('Resolver Dados').item.json.telefone }}"
+              },
+              {
+                "fieldId": "status",
+                "fieldValue": "RESERVADO"
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.supabase",
+        "typeVersion": 1,
+        "position": [
+          1450,
+          -100
+        ],
+        "name": "Registrar Reserva",
+        "credentials": {
+          "supabaseApi": {
+            "id": "cuLPizV1tj78XzSn",
+            "name": "Supabase (Agente IA)"
+          }
+        },
+        "id": "c12b395a-dda3-4ad1-9b31-1da8e9845504"
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "a1",
+                "name": "mensagem",
+                "value": "Perfeito! Seu agendamento foi realizado com sucesso.",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          1650,
+          -100
+        ],
+        "name": "Fim Sucesso",
+        "id": "58a6e5d0-a0e3-4f01-8e87-119a1c623051"
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "a2",
+                "name": "mensagem",
+                "value": "={{ $json.mensagem }}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          1250,
+          100
+        ],
+        "name": "Fim Erro",
+        "id": "b81051bc-7597-4815-b01b-8a98a6bf3cb4"
+      }
+    ],
+    "connections": {
+      "trigger": {
+        "main": [
+          [
+            {
+              "node": "Resolver Dados",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Resolver Dados": {
+        "main": [
+          [
+            {
+              "node": "É UUID?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "É UUID?": {
+        "main": [
+          [
+            {
+              "node": "Buscar por ID",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Buscar por Tempo",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Buscar por ID": {
+        "main": [
+          [
+            {
+              "node": "Validar Slot",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Buscar por Tempo": {
+        "main": [
+          [
+            {
+              "node": "Validar Slot",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Validar Slot": {
+        "main": [
+          [
+            {
+              "node": "Tudo Certo?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tudo Certo?": {
+        "main": [
+          [
+            {
+              "node": "Reservar no Banco",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Fim Erro",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Reservar no Banco": {
+        "main": [
+          [
+            {
+              "node": "Registrar Reserva",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Registrar Reserva": {
+        "main": [
+          [
+            {
+              "node": "Fim Sucesso",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Camilo miloruas@gmail.com",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-02-06T17:46:28.407Z",
+        "id": 150,
+        "workflowId": "8C195OrvhCXh3biQ",
+        "versionId": "62975576-94c4-48ce-8be9-77a42752b07f",
+        "event": "activated",
+        "userId": "fa7cd7cf-7d9b-40b7-a8c7-aaac9636a19f"
+      },
+      {
+        "createdAt": "2026-02-06T17:46:29.507Z",
+        "id": 153,
+        "workflowId": "8C195OrvhCXh3biQ",
+        "versionId": "62975576-94c4-48ce-8be9-77a42752b07f",
+        "event": "activated",
+        "userId": "fa7cd7cf-7d9b-40b7-a8c7-aaac9636a19f"
+      },
+      {
+        "createdAt": "2026-02-06T17:47:53.043Z",
+        "id": 159,
+        "workflowId": "8C195OrvhCXh3biQ",
+        "versionId": "62975576-94c4-48ce-8be9-77a42752b07f",
+        "event": "activated",
+        "userId": "fa7cd7cf-7d9b-40b7-a8c7-aaac9636a19f"
+      },
+      {
+        "createdAt": "2026-02-06T17:52:50.265Z",
+        "id": 165,
+        "workflowId": "8C195OrvhCXh3biQ",
+        "versionId": "62975576-94c4-48ce-8be9-77a42752b07f",
+        "event": "activated",
+        "userId": "fa7cd7cf-7d9b-40b7-a8c7-aaac9636a19f"
+      },
+      {
+        "createdAt": "2026-02-06T17:53:50.725Z",
+        "id": 171,
+        "workflowId": "8C195OrvhCXh3biQ",
+        "versionId": "62975576-94c4-48ce-8be9-77a42752b07f",
+        "event": "activated",
+        "userId": "fa7cd7cf-7d9b-40b7-a8c7-aaac9636a19f"
+      }
+    ]
+  }
+}
