@@ -29,6 +29,12 @@
                             "name": "slot_id",
                             "value": "={{ $json.slot_id }}",
                             "type": "string"
+                        },
+                        {
+                            "id": "3",
+                            "name": "nome",
+                            "value": "={{ $json.nome }}",
+                            "type": "string"
                         }
                     ]
                 }
@@ -126,6 +132,10 @@
                         {
                             "fieldId": "cliente_telefone",
                             "fieldValue": "={{ $node[\"Receber Dados\"].json.telefone }}"
+                        },
+                        {
+                            "fieldId": "nome_cliente",
+                            "fieldValue": "={{ $node[\"Receber Dados\"].json.nome }}"
                         }
                     ]
                 }
@@ -162,6 +172,10 @@
                         {
                             "fieldId": "status",
                             "fieldValue": "RESERVADO"
+                        },
+                        {
+                            "fieldId": "nome_cliente",
+                            "fieldValue": "={{ $node[\"Receber Dados\"].json.nome }}"
                         }
                     ]
                 }
